@@ -36,6 +36,38 @@ void generateKey(unsigned char* key, int keySize) {
     }
 }
 
+array<unsigned char, 16> SubBytes(const array<unsigned char, 16>& block) {
+    array<unsigned char, 16> encryptedBlock;
+
+    for (int i=0;i<16;++i) {
+        unsigned char pixel=block[i];
+        unsigned char encryptedPixel=SBox[pixel / 16][pixel % 16];
+        encryptedBlock[i]=encryptedPixel;
+    }
+
+    return encryptedBlock;
+}
+
+array<unsigned char, 16> ShiftRows(const array<unsigned char, 16>& block) {
+    array<unsigned char, 16> shiftedBlock;
+
+    for (int row=0;row<4;++row) {
+        for (int col=0;col<4;++col) {
+            int shiftedCol =(col+row) % 4;
+            shiftedBlock[row*4+col] = block[row*4+shiftedCol];
+        }
+    }
+
+    return shiftedBlock;
+}
+
+void displayBlock(const array<unsigned char, 16>& block) {
+    for (const auto& pixel : block) {
+        cout<<hex<<static_cast<int>(pixel)<< " ";
+    }
+    cout<<endl;
+}
+
 int main() {
 
     const int keySize = 16;
@@ -43,7 +75,7 @@ int main() {
     generateKey(key, keySize);
 
     cout << "Generated Key: ";
-    for (int i = 0; i < keySize; ++i) {
+    for (int i = 0; i < keySize; ++i){
         cout << hex << static_cast<int>(key[i]);
     }
     cout << endl;
@@ -76,11 +108,9 @@ int main() {
     }
 
     for (const auto& block : blocks) {
-        for (const auto& pixel : block) {
-            unsigned char encryptedPixel= SBox[pixel/16][pixel%16];
-            cout<<hex<< static_cast<int>(encryptedPixel)<<" ";
-        }
-        cout <<endl;
+        array<unsigned char, 16> encryptedBlock = SubBytes(block);
+        array<unsigned char, 16> shiftedBlock = ShiftRows(encryptedBlock);
+        displayBlock(encryptedBlock);
     }
 
 
