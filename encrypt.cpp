@@ -28,6 +28,14 @@ vector<vector<unsigned char>> SBox = {
   {0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16}
 };
 
+const array<unsigned char, 16> mixColumnsMatrix = {
+    0x02, 0x03, 0x01, 0x01,
+    0x01, 0x02, 0x03, 0x01,
+    0x01, 0x01, 0x02, 0x03,
+    0x03, 0x01, 0x01, 0x02
+};
+
+
 void generateKey(unsigned char* key, int keySize) {
     srand(static_cast<unsigned int>(time(0)));
 
@@ -60,6 +68,43 @@ array<unsigned char, 16> ShiftRows(const array<unsigned char, 16>& block) {
 
     return shiftedBlock;
 }
+
+unsigned char MultiplyInGF2_8(unsigned char a, unsigned char b) {
+    unsigned char result = 0;
+    while (b != 0) {
+        if ((b & 0x01) != 0) {
+            result ^= a;
+        }
+        unsigned char highBitSet = (a & 0x80);
+        a <<= 1;
+        if (highBitSet != 0) {
+            a ^= 0x1B;
+        }
+        b >>= 1;
+    }
+    return result;
+}
+
+array<unsigned char, 16> MixColumns(const array<unsigned char, 16>& block) {
+    array<unsigned char,16> mixedBlock;
+
+    for (int col = 0; col < 4; ++col) {
+        for (int row = 0; row < 4; ++row) {
+            unsigned char result = 0;
+            for (int i = 0; i < 4; ++i) {
+                unsigned char multiplier = mixColumnsMatrix[row * 4 + i];
+                unsigned char value = block[i * 4 + col];
+                result ^= MultiplyInGF2_8(multiplier, value);
+            }
+            mixedBlock[row * 4 + col] = result;
+        }
+    }
+
+    return mixedBlock;
+}
+
+
+
 
 void displayBlock(const array<unsigned char, 16>& block) {
     for (const auto& pixel : block) {
@@ -110,7 +155,8 @@ int main() {
     for (const auto& block : blocks) {
         array<unsigned char, 16> encryptedBlock = SubBytes(block);
         array<unsigned char, 16> shiftedBlock = ShiftRows(encryptedBlock);
-        displayBlock(encryptedBlock);
+        array<unsigned char, 16> mixedBlock = MixColumns(shiftedBlock);
+        displayBlock(mixedBlock);
     }
 
 
