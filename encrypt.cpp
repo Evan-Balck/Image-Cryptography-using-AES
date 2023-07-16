@@ -9,7 +9,8 @@
 using namespace std;
 using namespace cv;
 
-vector<vector<unsigned char>> SBox = {
+//Fixed values during AES encryption
+vector<vector<unsigned char>> SBox={
   {0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76},
   {0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0},
   {0xB7, 0xFD, 0x93, 0x26, 0x36, 0x3F, 0xF7, 0xCC, 0x34, 0xA5, 0xE5, 0xF1, 0x71, 0xD8, 0x31, 0x15},
@@ -35,15 +36,58 @@ const array<unsigned char, 16> mixColumnsMatrix = {
     0x03, 0x01, 0x01, 0x02
 };
 
+const array<unsigned char, 11> Rcon={
+    0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36
+};
 
+
+//Key generation and expansion
 void generateKey(unsigned char* key, int keySize) {
     srand(static_cast<unsigned int>(time(0)));
 
-    for (int i = 0; i < keySize; ++i) {
-        key[i] = static_cast<unsigned char>(rand() % 256);
+    for (int i=0;i<keySize;++i) {
+        key[i] = static_cast<unsigned char>(rand()%256);
     }
 }
 
+void RotateWord(unsigned char* word) {
+    unsigned char temp = word[0];
+    word[0] = word[1];
+    word[1] = word[2];
+    word[2] = word[3];
+    word[3] = temp;
+}
+
+void ExpandKey(const unsigned char* originalKey, unsigned char* expandedKey) {
+    memcpy(expandedKey, originalKey, 16);
+
+    unsigned char temp[4];
+    int bytesGenerated = 16;
+
+    while (bytesGenerated < 176) {
+        for (int i = 0; i < 4; ++i) {
+            temp[i] = expandedKey[(bytesGenerated - 4) + i];
+        }
+
+        if (bytesGenerated % 16 == 0) {
+            RotateWord(temp);
+
+            for (int i = 0; i < 4; ++i) {
+                temp[i] = SBox[temp[i] / 16][temp[i] % 16];
+            }
+
+            temp[0] ^= Rcon[bytesGenerated / 16];
+        }
+
+        for (int i = 0; i < 4; ++i) {
+            expandedKey[bytesGenerated] = expandedKey[bytesGenerated - 16] ^ temp[i];
+            bytesGenerated++;
+        }
+    }
+}
+
+
+//Round function
 array<unsigned char, 16> SubBytes(const array<unsigned char, 16>& block) {
     array<unsigned char, 16> encryptedBlock;
 
@@ -106,45 +150,53 @@ array<unsigned char, 16> MixColumns(const array<unsigned char, 16>& block) {
 
 
 
-void displayBlock(const array<unsigned char, 16>& block) {
-    for (const auto& pixel : block) {
+void displayBlock(const array<unsigned char, 16>& block){
+    for (const auto& pixel:block) {
         cout<<hex<<static_cast<int>(pixel)<< " ";
     }
     cout<<endl;
 }
 
-int main() {
-
-    const int keySize = 16;
+int main(){
+    const int keySize=16;
     unsigned char key[keySize];
     generateKey(key, keySize);
 
     cout << "Generated Key: ";
-    for (int i = 0; i < keySize; ++i){
+    for (int i=0; i<keySize;++i){
         cout << hex << static_cast<int>(key[i]);
     }
     cout << endl;
 
+    const int expandedKeySize=176; 
+    unsigned char expandedKey[expandedKeySize];
+    ExpandKey((const unsigned char*)key,expandedKey);
+
+    cout << "Expanded Key: ";
+    for (int i = 0; i < expandedKeySize; ++i) {
+        cout << hex << static_cast<int>(expandedKey[i]);
+    }
+    cout << endl;
 
     Mat image = imread("img2.jpg", IMREAD_COLOR);
     Mat convertedImage;
-    int rows = image.rows - image.rows % 4;
-    int cols = image.cols - image.cols % 4;
+    int rows = image.rows - image.rows %4;
+    int cols = image.cols - image.cols %4;
     resize(image, image, Size(cols, rows));
 
-    cvtColor(image, convertedImage, COLOR_BGR2GRAY);
+    cvtColor(image,convertedImage,COLOR_BGR2GRAY);
 
 
     const int blockSize=16;
-    vector<array<unsigned char, blockSize>> blocks;
+    vector<array<unsigned char,blockSize>> blocks;
 
-    for (int i = 0; i < convertedImage.rows; i += 4) {
-        for (int j = 0; j < convertedImage.cols; j += 4) {
+    for (int i=0; i<convertedImage.rows; i+=4) {
+        for (int j=0;j<convertedImage.cols;j+=4) {
             array<unsigned char, blockSize> block;
 
-            for (int k = 0; k < 4; ++k) {
-                for (int l = 0; l < 4; ++l) {
-                    block[k * 4 + l] = convertedImage.at<unsigned char>(i + k, j + l);
+            for (int k=0;k<4;++k) {
+                for (int l=0;l<4;++l) {
+                    block[k*4+l]= convertedImage.at<unsigned char>(i+k, j+l);
                 }
             }
 
@@ -152,11 +204,32 @@ int main() {
         }
     }
 
+    //AES encrytpion functions calls
     for (const auto& block : blocks) {
-        array<unsigned char, 16> encryptedBlock = SubBytes(block);
-        array<unsigned char, 16> shiftedBlock = ShiftRows(encryptedBlock);
-        array<unsigned char, 16> mixedBlock = MixColumns(shiftedBlock);
-        displayBlock(mixedBlock);
+        array<unsigned char, 16> state = block;
+
+        for (int i = 0; i < 16; ++i) {
+            state[i] ^= expandedKey[i];
+        }
+
+        for (int round=1;round<=9;++round){
+            state=SubBytes(state);
+            state=ShiftRows(state);
+            state=MixColumns(state);
+
+            for (int i = 0; i < 16; ++i) {
+                state[i] ^= expandedKey[(round * 16) + i];
+            }
+        }
+
+        state=SubBytes(state);
+        state=ShiftRows(state);
+
+        for (int i = 0; i < 16; ++i) {
+            state[i] ^= expandedKey[160 + i];
+        }
+
+        displayBlock(state);
     }
 
 
