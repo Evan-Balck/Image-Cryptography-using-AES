@@ -48,14 +48,14 @@ vector<vector<unsigned char>> InvSBox={
     {0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D}
 };
 
-const array<unsigned char, 16> mixColumnsMatrix = {
+const array<unsigned char, 16> mixColumnsMatrix={
     0x02, 0x03, 0x01, 0x01,
     0x01, 0x02, 0x03, 0x01,
     0x01, 0x01, 0x02, 0x03,
     0x03, 0x01, 0x01, 0x02
 };
 
-const array<unsigned char, 16> invMixColumnsMatrix = {
+const array<unsigned char, 16> invMixColumnsMatrix={
     0x0E, 0x0B, 0x0D, 0x09,
     0x09, 0x0E, 0x0B, 0x0D,
     0x0D, 0x09, 0x0E, 0x0B,
@@ -68,45 +68,45 @@ const array<unsigned char, 11> Rcon={
 
 
 //Key generation and expansion
-void generateKey(unsigned char* key, int keySize) {
+void generateKey(unsigned char* key, int keySize){
     srand(static_cast<unsigned int>(time(0)));
 
-    for (int i=0;i<keySize;++i) {
-        key[i] = static_cast<unsigned char>(rand()%256);
+    for(int i=0;i<keySize;++i){
+        key[i] =static_cast<unsigned char>(rand()%256);
     }
 }
 
-void RotateWord(unsigned char* word) {
-    unsigned char temp = word[0];
-    word[0] = word[1];
-    word[1] = word[2];
-    word[2] = word[3];
-    word[3] = temp;
+void RotateWord(unsigned char* word){
+    unsigned char temp=word[0];
+    word[0]=word[1];
+    word[1]=word[2];
+    word[2]=word[3];
+    word[3]=temp;
 }
 
-void ExpandKey(const unsigned char* originalKey, unsigned char* expandedKey) {
-    memcpy(expandedKey, originalKey, 16);
+void ExpandKey(const unsigned char* originalKey,unsigned char* expandedKey) {
+    memcpy(expandedKey,originalKey,16);
 
     unsigned char temp[4];
-    int bytesGenerated = 16;
+    int bytesGenerated= 16;
 
-    while (bytesGenerated < 176) {
-        for (int i = 0; i < 4; ++i) {
-            temp[i] = expandedKey[(bytesGenerated - 4) + i];
+    while (bytesGenerated<176) {
+        for (int i=0;i<4;++i) {
+            temp[i]= expandedKey[(bytesGenerated-4)+i];
         }
 
-        if (bytesGenerated % 16 == 0) {
+        if (bytesGenerated%16 == 0) {
             RotateWord(temp);
 
-            for (int i = 0; i < 4; ++i) {
-                temp[i] = SBox[temp[i] / 16][temp[i] % 16];
+            for (int i=0; i<4; ++i) {
+                temp[i]= SBox[temp[i] / 16][temp[i] % 16];
             }
 
-            temp[0] ^= Rcon[bytesGenerated / 16];
+            temp[0]^=Rcon[bytesGenerated / 16];
         }
 
-        for (int i = 0; i < 4; ++i) {
-            expandedKey[bytesGenerated] = expandedKey[bytesGenerated - 16] ^ temp[i];
+        for (int i=0;i<4;++i) {
+            expandedKey[bytesGenerated]= expandedKey[bytesGenerated-16] ^ temp[i];
             bytesGenerated++;
         }
     }
@@ -119,7 +119,7 @@ array<unsigned char, 16> SubBytes(const array<unsigned char, 16>& block) {
 
     for (int i=0;i<16;++i) {
         unsigned char pixel=block[i];
-        unsigned char encryptedPixel=SBox[pixel / 16][pixel % 16];
+        unsigned char encryptedPixel= SBox[pixel/16][pixel%16];
         encryptedBlock[i]=encryptedPixel;
     }
 
@@ -132,41 +132,41 @@ array<unsigned char, 16> ShiftRows(const array<unsigned char, 16>& block) {
     for (int row=0;row<4;++row) {
         for (int col=0;col<4;++col) {
             int shiftedCol =(col+row) % 4;
-            shiftedBlock[row*4+col] = block[row*4+shiftedCol];
+            shiftedBlock[row*4+col]= block[row*4+shiftedCol];
         }
     }
 
     return shiftedBlock;
 }
 
-unsigned char MultiplyInGF2_8(unsigned char a, unsigned char b) {
-    unsigned char result = 0;
-    while (b != 0) {
-        if ((b & 0x01) != 0) {
-            result ^= a;
+unsigned char MultiplyHelper(unsigned char a, unsigned char b){
+    unsigned char result= 0;
+    while (b!=0) {
+        if ((b & 0x01)!=0) {
+            result^=a;
         }
-        unsigned char highBitSet = (a & 0x80);
-        a <<= 1;
-        if (highBitSet != 0) {
-            a ^= 0x1B;
+        unsigned char highBitSet=(a & 0x80);
+        a<<=1;
+        if (highBitSet!=0) {
+            a^=0x1B;
         }
-        b >>= 1;
+        b>>=1;
     }
     return result;
 }
 
-array<unsigned char, 16> MixColumns(const array<unsigned char, 16>& block) {
+array<unsigned char, 16> MixColumns(const array<unsigned char, 16>& block){
     array<unsigned char,16> mixedBlock;
 
-    for (int col = 0; col < 4; ++col) {
-        for (int row = 0; row < 4; ++row) {
-            unsigned char result = 0;
-            for (int i = 0; i < 4; ++i) {
-                unsigned char multiplier = mixColumnsMatrix[row * 4 + i];
-                unsigned char value = block[i * 4 + col];
-                result ^= MultiplyInGF2_8(multiplier, value);
+    for (int col=0;col<4;++col) {
+        for (int row=0;row<4;++row) {
+            unsigned char result= 0;
+            for (int i=0;i<4;++i) {
+                unsigned char multiplier= mixColumnsMatrix[row*4+i];
+                unsigned char value= block[i*4+col];
+                result ^= MultiplyHelper(multiplier,value);
             }
-            mixedBlock[row * 4 + col] = result;
+            mixedBlock[row*4+col]=result;
         }
     }
 
@@ -175,43 +175,43 @@ array<unsigned char, 16> MixColumns(const array<unsigned char, 16>& block) {
 
 
 //Round funtion for decryption
-array<unsigned char, 16> InvSubBytes(const array<unsigned char, 16>& block) {
+array<unsigned char, 16> InvSubBytes(const array<unsigned char, 16>& block){
     array<unsigned char, 16> decryptedBlock;
 
-    for (int i = 0; i < 16; ++i) {
-        unsigned char pixel = block[i];
-        unsigned char decryptedPixel = InvSBox[pixel / 16][pixel % 16];
-        decryptedBlock[i] = decryptedPixel;
+    for (int i=0;i<16;++i) {
+        unsigned char pixel=block[i];
+        unsigned char decryptedPixel= InvSBox[pixel/16][pixel%16];
+        decryptedBlock[i]= decryptedPixel;
     }
 
     return decryptedBlock;
 }
 
-array<unsigned char, 16> InvMixColumns(const array<unsigned char, 16>& block) {
+array<unsigned char, 16> InvMixColumns(const array<unsigned char, 16>& block){
     array<unsigned char, 16> decryptedBlock;
 
-    for (int col = 0; col < 4; ++col) {
-        for (int row = 0; row < 4; ++row) {
-            unsigned char result = 0;
-            for (int i = 0; i < 4; ++i) {
-                unsigned char multiplier = invMixColumnsMatrix[row * 4 + i];
-                unsigned char value = block[i * 4 + col];
-                result ^= MultiplyInGF2_8(multiplier, value);
+    for (int col=0;col<4;++col) {
+        for (int row=0;row<4;++row) {
+            unsigned char result= 0;
+            for (int i=0;i<4;++i) {
+                unsigned char multiplier=invMixColumnsMatrix[row*4+i];
+                unsigned char value=block[i*4+col];
+                result ^= MultiplyHelper(multiplier,value);
             }
-            decryptedBlock[row * 4 + col] = result;
+            decryptedBlock[row*4+col]= result;
         }
     }
 
     return decryptedBlock;
 }
 
-array<unsigned char, 16> InvShiftRows(const array<unsigned char, 16>& block) {
+array<unsigned char, 16> InvShiftRows(const array<unsigned char, 16>& block){
     array<unsigned char, 16> decryptedBlock;
 
-    for (int row = 0; row < 4; ++row) {
-        for (int col = 0; col < 4; ++col) {
-            int shiftedCol = (col - row + 4) % 4;
-            decryptedBlock[row * 4 + col] = block[row * 4 + shiftedCol];
+    for (int row=0;row<4;++row) {
+        for (int col=0;col<4;++col) {
+            int shiftedCol= (col-row+4) % 4;
+            decryptedBlock[row*4+col] = block[row*4+shiftedCol];
         }
     }
 
@@ -234,30 +234,30 @@ int main(){
 
     cout << "Generated Key: ";
     for (int i=0; i<keySize;++i){
-        cout << hex << static_cast<int>(key[i]);
+        cout <<hex<<static_cast<int>(key[i]);
     }
-    cout << endl;
+    cout<<endl;
 
     const int expandedKeySize=176; 
     unsigned char expandedKey[expandedKeySize];
     ExpandKey((const unsigned char*)key,expandedKey);
 
     cout << "Expanded Key: ";
-    for (int i = 0; i < expandedKeySize; ++i) {
-        cout << hex << static_cast<int>(expandedKey[i]);
+    for (int i=0;i<expandedKeySize;++i) {
+        cout<<hex<<static_cast<int>(expandedKey[i]);
     }
-    cout << endl;
+    cout<<endl;
 
-    Mat image = imread("img2.jpg", IMREAD_COLOR);
+    Mat image=imread("img2.jpg", IMREAD_COLOR);
     Mat convertedImage;
-    int rows = image.rows - image.rows %4;
-    int cols = image.cols - image.cols %4;
-    resize(image, image, Size(cols, rows));
+    int rows=image.rows - image.rows %4;
+    int cols=image.cols - image.cols %4;
+    resize(image,image,Size(cols, rows));
 
     cvtColor(image,convertedImage,COLOR_BGR2GRAY);
     namedWindow("Original Image", WINDOW_NORMAL);
-    imshow("Original Image", convertedImage);
-    waitKey(0);
+    cv::imshow("Original Image", convertedImage);
+    cv::waitKey(100);
 
 
     const int blockSize=16;
@@ -278,11 +278,11 @@ int main(){
     }
 
     //AES encrytpion calls
-    for (auto& block : blocks) {
-        array<unsigned char, 16> state = block;
+    for (auto& block : blocks){
+        array<unsigned char, 16> state=block;
 
-        for (int i = 0; i < 16; ++i) {
-            state[i] ^= expandedKey[i];
+        for (int i=0;i<16;++i) {
+            state[i]^=expandedKey[i];
         }
 
         for (int round=1;round<=9;++round){
@@ -290,16 +290,16 @@ int main(){
             state=ShiftRows(state);
             state=MixColumns(state);
 
-            for (int i = 0; i < 16; ++i) {
-                state[i] ^= expandedKey[(round * 16) + i];
+            for (int i=0;i<16;++i) {
+                state[i] ^= expandedKey[(round*16) + i];
             }
         }
 
         state=SubBytes(state);
         state=ShiftRows(state);
 
-        for (int i = 0; i < 16; ++i) {
-            state[i] ^= expandedKey[160 + i];
+        for (int i=0;i<16;++i) {
+            state[i]^=expandedKey[160+i];
         }
 
         block = state;
@@ -309,46 +309,15 @@ int main(){
     }
 
 
-    //AES decryption calls
-    for (auto& block : blocks) {
-        array<unsigned char, 16> state = block;
-
-        for (int i = 0; i < 16; ++i) {
-            state[i] ^= expandedKey[160 + i];
-        }
-
-        state = InvShiftRows(state);
-        state = InvSubBytes(state);
-
-        for (int round = 9; round >= 1; --round) {
-            for (int i = 0; i < 16; ++i) {
-                state[i] ^= expandedKey[(round * 16) + i];
-            }
-
-            state = InvMixColumns(state);
-            state = InvShiftRows(state);
-            state = InvSubBytes(state);
-        }
-
-        for (int i = 0; i < 16; ++i) {
-            state[i] ^= expandedKey[i];
-        }
-
-        block = state;
-        //displayBlock(state);
-    }
-
-    Mat decryptedImage(image.size(), CV_8UC1);
-
+    Mat encryptedImage(convertedImage.size(), CV_8UC1);
     int blockIndex = 0;
+    for (int i=0;i<convertedImage.rows;i +=4){
+        for (int j=0;j<convertedImage.cols;j+=4){
+            const auto& block= blocks[blockIndex];
 
-    for (int i = 0; i < convertedImage.rows; i += 4) {
-        for (int j = 0; j < convertedImage.cols; j += 4) {
-            const auto& block = blocks[blockIndex];
-
-            for (int k = 0; k < 4; ++k) {
-                for (int l = 0; l < 4; ++l) {
-                    decryptedImage.at<unsigned char>(i + k, j + l) = block[k * 4 + l];
+            for (int k=0;k<4;++k) {
+                for (int l=0;l<4;++l) {
+                    encryptedImage.at<unsigned char>(i+k,j+l) = block[k*4+l];
                 }
             }
 
@@ -356,9 +325,60 @@ int main(){
         }
     }
 
-    namedWindow("Decrypted Image", WINDOW_NORMAL);
-    imshow("Decrypted Image", decryptedImage);
-    waitKey(0);
+    namedWindow("Encrypted Image",WINDOW_NORMAL);
+    cv::imshow("Encrypted Image",encryptedImage);
+    cv::waitKey(100);
+
+
+
+    //AES decryption calls
+    for (auto& block : blocks){
+        array<unsigned char, 16> state=block;
+
+        for (int i=0;i<16;++i){
+            state[i]^=expandedKey[160 + i];
+        }
+
+        state=InvShiftRows(state);
+        state=InvSubBytes(state);
+
+        for (int round=9;round>=1;--round){
+            for (int i=0;i<16;++i) {
+                state[i]^=expandedKey[(round * 16) + i];
+            }
+
+            state=InvMixColumns(state);
+            state=InvShiftRows(state);
+            state=InvSubBytes(state);
+        }
+
+        for (int i=0;i<16;++i){
+            state[i]^=expandedKey[i];
+        }
+
+        block=state;
+        //displayBlock(state);
+    }
+
+    Mat decryptedImage(image.size(),CV_8UC1);
+    blockIndex=0;
+    for (int i=0;i<convertedImage.rows;i+=4) {
+        for (int j=0;j<convertedImage.cols;j+=4) {
+            const auto& block=blocks[blockIndex];
+
+            for (int k=0;k<4;++k) {
+                for (int l=0;l<4;++l) {
+                    decryptedImage.at<unsigned char>(i+k,j+l) = block[k*4+l];
+                }
+            }
+
+            blockIndex++;
+        }
+    }
+
+    namedWindow("Decrypted Image",WINDOW_NORMAL);
+    cv::imshow("Decrypted Image",decryptedImage);
+    cv::waitKey(0);
 
     return 0;
 }
