@@ -95,14 +95,14 @@ void ExpandKey(const unsigned char* originalKey,unsigned char* expandedKey) {
             temp[i]= expandedKey[(bytesGenerated-4)+i];
         }
 
-        if (bytesGenerated%16 == 0) {
+        if (bytesGenerated%16==0) {
             RotateWord(temp);
 
-            for (int i=0; i<4; ++i) {
-                temp[i]= SBox[temp[i] / 16][temp[i] % 16];
+            for (int i=0;i<4;++i) {
+                temp[i]=SBox[temp[i]/16][temp[i]%16];
             }
 
-            temp[0]^=Rcon[bytesGenerated / 16];
+            temp[0]^=Rcon[bytesGenerated/16];
         }
 
         for (int i=0;i<4;++i) {
